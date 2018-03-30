@@ -22,9 +22,9 @@ public class dbConnector {
     private MongoClient mongoClient;
     private MongoDatabase database;
     private static final int PRIORITY = 100;
-    private static final int MAX_CRAWL = 5000;
+    private static final int MAX_CRAWL = 100;
     private static final int ID = 1911;
-    private static final int MAX_RECRAWL = 1000;
+    private static final int MAX_RECRAWL = 10;
 
     MongoCollection<Document> documents, to_crawl;
 
@@ -140,7 +140,7 @@ public class dbConnector {
         updateQuery.put("$set", new BasicDBObject().append("to_crawl", to_crawll));
         BasicDBObject updateObject = new BasicDBObject("id", ID);
         to_crawl.updateOne(updateObject, updateQuery);
-        System.out.println(to_crawll);
+        System.out.println("to_crawl: "+to_crawll);
 
     }
 
@@ -191,8 +191,8 @@ public class dbConnector {
         // Getting the iterator
         Iterator it = iterDoc.iterator();
         int cnt=0;
-        for (Document doc : iterDoc) {
-            if(doc.getInteger("to_index") == 0)
+        while (it.hasNext()) {
+            writer.println(it.next());
             ++cnt;
         }
         writer.close();

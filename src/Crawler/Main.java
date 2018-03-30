@@ -34,7 +34,7 @@ public class Main {
             //Iterator it = iterDocs.iterator();
             //split the documents
             ArrayList<String> to_crawl_urls = new ArrayList<>();
-            Map<String, Url_Data> visited = Collections.synchronizedMap(new HashMap<>());
+           ConcurrentHashMap<String,Url_Data>visited=new ConcurrentHashMap<>();
 
             for (Document iterDoc : iterDocs) {
                 String url = iterDoc.getString("url");
@@ -70,6 +70,13 @@ public class Main {
                     }
                 }
             }
+          ConcurrentLinkedQueue<String>arr=Web_Crawling.getFinal_urls();
+            System.out.println("final size: "+arr.size());
+            Set<String>seet=new HashSet<>();
+            for(String arrr: arr){
+                seet.add(arrr);
+            }
+            System.out.println("unique: "+seet.size());
             db.printDocs();
             db.removeOverhead();
 
