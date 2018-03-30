@@ -10,10 +10,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
-import java.net.URL;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -156,7 +153,7 @@ public class Web_Crawling implements Runnable {
                                 }
                             }
                         }
-
+                        link=NormalizeURL.normalize(link);
                         if (!visited.containsKey(link)) {
                             if (!dis || (allow && (allowed.length() >= disallowed.length()))) {
                                 visited.put(link, new Url_Data());
@@ -271,8 +268,9 @@ public class Web_Crawling implements Runnable {
 
     }
 
-    public static void setCurrent_urls(ArrayList<String> urls) throws InterruptedException {
+    public static void setCurrent_urls(ArrayList<String> urls) throws InterruptedException, MalformedURLException, UnknownHostException {
         for (String url : urls) {
+            url=NormalizeURL.normalize(url);
             // current_urls.put(url);
             current.add(url);
             db.insertDocument(url);

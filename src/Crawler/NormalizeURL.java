@@ -12,17 +12,7 @@ import java.util.Scanner;
 
 public class NormalizeURL {
 
-    public static void main(String []args) throws MalformedURLException {
 
-        String str = "http://208.77.188.166///display?lang=en&article=fred";
-        String urlNormalized = null;
-        try {
-            urlNormalized = normalize(str);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-        System.out.println("urlNormalized : " + urlNormalized);
-    }
 
     public static String normalize(String str) throws MalformedURLException, UnknownHostException {
         URL url;
@@ -41,11 +31,8 @@ public class NormalizeURL {
         System.out.println("file : " + url.getFile());
 
         /*Converting the scheme and host to lower case*/
-        if(url.getProtocol().toLowerCase().equals("https")){
-            ans.append("http");
-        }else {
-            ans.append(url.getProtocol().toLowerCase());
-        }
+
+        ans.append(url.getProtocol().toLowerCase());
         ans.append("://");
         String authority = url.getAuthority();
         StringBuilder authorityBuilder = new StringBuilder();
