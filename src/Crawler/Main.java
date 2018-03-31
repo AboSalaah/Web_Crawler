@@ -14,13 +14,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
-    private static final int Thread_count = 8;
+    private static final int Thread_count = 4;
 
     public static void main(String[] args) throws IOException {
         dbConnector db = new dbConnector();
         Web_Crawling.setTagPriorities();
         Web_Crawling.setDBObject(db);
+        int kam_crawl=0;
         while (true) {
+            System.out.println("ana fel crawlaayaa: "+(++kam_crawl));
             System.out.println("to_crawl "+Web_Crawling.getTo_crawl().get());
             long startTime = System.currentTimeMillis();
             ArrayList<String> urls = new ArrayList<>();
@@ -34,8 +36,7 @@ public class Main {
             //Iterator it = iterDocs.iterator();
             //split the documents
             ArrayList<String> to_crawl_urls = new ArrayList<>();
-           ConcurrentHashMap<String,Url_Data>visited=new ConcurrentHashMap<>();
-
+            Map<String, Url_Data> visited = Collections.synchronizedMap(new HashMap<>());
             for (Document iterDoc : iterDocs) {
                 String url = iterDoc.getString("url");
                 if (iterDoc.getInteger("crawled") == 1) {
@@ -49,17 +50,17 @@ public class Main {
 
             }
             if (!to_crawl_urls.isEmpty()) {
-                ArrayList<Thread> threads = new ArrayList<>();
-
-                for (int i = 0; i < Thread_count; ++i) {
-                    threads.add(new Thread(new Web_Crawling()));
-                }
                 //set the current queue and visited map
                 try {
                     Web_Crawling.setCurrent_urls(to_crawl_urls);
                     Web_Crawling.setVisited(visited);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                }
+                ArrayList<Thread> threads = new ArrayList<>();
+
+                for (int i = 0; i < Thread_count; ++i) {
+                    threads.add(new Thread(new Web_Crawling()));
                 }
                 for (int i = 0; i < Thread_count; ++i) threads.get(i).start();
                 for (int i = 0; i < Thread_count; ++i) {
@@ -70,7 +71,7 @@ public class Main {
                     }
                 }
             }
-          ConcurrentLinkedQueue<String>arr=Web_Crawling.getFinal_urls();
+          BlockingQueue<String> arr=Web_Crawling.getFinal_urls();
             System.out.println("final size: "+arr.size());
             Set<String>seet=new HashSet<>();
             for(String arrr: arr){
@@ -83,12 +84,14 @@ public class Main {
 
             //reset the ones with high priority
             db.sort_and_update();
+            System.out.println("able el set bta3 to_crawl: "+Web_Crawling.getTo_crawl().get());
             db.setRecrawl();
+            System.out.println("b3d el set bta3 to_crawl: "+Web_Crawling.getTo_crawl().get());
 
             System.out.println(db.printDocs());
             System.out.println(db.getCrawlReminder());
 
-            break;
+            //break;
 
         }
 

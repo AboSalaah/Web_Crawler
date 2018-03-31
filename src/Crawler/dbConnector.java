@@ -22,9 +22,9 @@ public class dbConnector {
     private MongoClient mongoClient;
     private MongoDatabase database;
     private static final int PRIORITY = 100;
-    private static final int MAX_CRAWL = 100;
+    private static final int MAX_CRAWL = 5;
     private static final int ID = 1911;
-    private static final int MAX_RECRAWL = 10;
+    private static final int MAX_RECRAWL =2 ;
 
     MongoCollection<Document> documents, to_crawl;
 
@@ -91,7 +91,10 @@ public class dbConnector {
         BasicDBObject updateQuery;
 
         Document cur = documents.find(new Document("url", url)).first();
-
+        if(cur==null){
+           insertDocument(url);
+           cur=documents.find(new Document("url", url)).first();
+        }
         ArrayList<String> texts_db = (ArrayList<String>) cur.get("url_data");
         ArrayList<Integer> tags_db = (ArrayList<Integer>) cur.get("tags");
         ArrayList<String> texts = url_data.getText();
@@ -152,6 +155,8 @@ public class dbConnector {
         updateQuery.put("$set", new BasicDBObject().append("to_crawl", MAX_CRAWL));
         BasicDBObject updateObject = new BasicDBObject("id", ID);
         to_crawl.updateOne(updateObject, updateQuery);
+        //edafa
+        Web_Crawling.setTo_crawl(MAX_CRAWL);
     }
 
     public FindIterable<Document> getAllDocuments() {

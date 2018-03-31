@@ -1,20 +1,16 @@
 package Crawler;
 
-import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -47,8 +43,8 @@ public class Web_Crawling implements Runnable {
     private static Object object3 = new Object();
     private static Object object4=new Object();
     //private static BlockingQueue<String> current_urls = new LinkedBlockingQueue<>();
-    private static ConcurrentLinkedQueue<String> final_urls = new ConcurrentLinkedQueue<String>();
-   // private static BlockingQueue<String> final_urls = new LinkedBlockingQueue<>();
+    //private static ConcurrentLinkedQueue<String> final_urls = new ConcurrentLinkedQueue<String>();
+     private static BlockingQueue<String> final_urls = new LinkedBlockingQueue<>();
     private static String urlPattern = "^http(s{0,1})://[a-zA-Z0-9_/\\-\\.]+\\.([A-Za-z/]{2,5})[a-zA-Z0-9_/\\&\\?\\=\\-\\.\\~\\%]*";
     //private static Map<String, Boolean> robots_done = Collections.synchronizedMap(new HashMap<>());
     private static HashMap<String,Boolean>robots_done=new HashMap<>();
@@ -56,8 +52,8 @@ public class Web_Crawling implements Runnable {
     public static final String robots_or_not = "User-agent: (.*)|Disallow: (.*)|Allow: (.*)";
     private static AtomicInteger to_crawl = new AtomicInteger();
     // de ely shayla le kol url el 7agat bt3to
-    //private static Map<String, Url_Data> visited = Collections.synchronizedMap(new HashMap<>());
-    private static ConcurrentHashMap<String,Url_Data>visited=new ConcurrentHashMap<>();
+    private static Map<String, Url_Data> visited = Collections.synchronizedMap(new HashMap<>());
+    //private static ConcurrentHashMap<String,Url_Data>visited=new ConcurrentHashMap<>();
     private static dbConnector db;
     //private static List<String> current = Collections.synchronizedList(new ArrayList<String>());
     //private static List<String> next = Collections.synchronizedList(new ArrayList<String>());
@@ -107,7 +103,7 @@ public class Web_Crawling implements Runnable {
                         if (!checkTagExist(element.tagName())) continue;
                         String text = element.ownText();
                         if (text.isEmpty()) continue;
-                        String alphaOnly = text.replaceAll("^[\\u0600-\\u065F\\u066A-\\u06EF\\u06FA-\\u06FFa-zA-Z]+[\\u0600-\\u065F\\u066A-\\u06EF\\u06FA-\\u06FFa-zA-Z-_]*$", " ");
+                        String alphaOnly = text.replaceAll("[^a-zA-Z]+", " ");
                         alphaOnly = alphaOnly.trim();
                         numOfWords += alphaOnly.split(" ").length;
                         url_data.addText(alphaOnly);
@@ -115,57 +111,57 @@ public class Web_Crawling implements Runnable {
                     }
                 }
                 ArrayList<ArrayList<String>> allowed_and_disallowd = robots_parser(url);
-                     synchronized (object2) {
+                synchronized (object2) {
 
-                         if (to_crawl.get() <= 0) break;
-                         if(numOfWords>=NW)to_crawl.decrementAndGet();
-                     }
-                    visited.put(url, url_data);
-                    if (numOfWords>= NW)
-                    {
-                        db.updateDocument(url, url_data);
-                        final_urls.add(url);
-                        //to_crawl.decrementAndGet();
-                        db.updateCrawlReminder(to_crawl);
-                    }
-                    for (String link : links) {
-                        if (link.length() == 0) continue;
-                        if (!link.matches(urlPattern)) continue;
-                        Pattern p;
-                        boolean dis = false;
-                        boolean allow = false;
-                        // 3shan a5ls mn el forward slash ely btb2a fel a5er 3shan kanet bt3ml moshkla fel match lw ana bdwr 3la 7aga tkon fe a5er el url
-                        StringBuilder temp = new StringBuilder(link);
-                        if (temp.charAt(temp.length() - 1) == '/') temp.deleteCharAt(temp.length() - 1);
-                        String disallowed = "";
-                        String allowed = "";
-                        for (int i = 0; i < 2; ++i) {
-                            for (int j = 0; j < allowed_and_disallowd.get(i).size(); ++j) {
-                                p = Pattern.compile(allowed_and_disallowd.get(i).get(j));
-                                Matcher m = p.matcher(temp);
-                                if (m.find()) {
-                                    if ((i % 2) == 0) {
-                                        dis = true;
-                                        disallowed = allowed_and_disallowd.get(i).get(j);
-                                    } else {
-                                        allow = true;
-                                        allowed = allowed_and_disallowd.get(i).get(j);
-                                    }
+                    if (to_crawl.get() <= 0) break;
+                    if(numOfWords>=NW)to_crawl.decrementAndGet();
+                }
+                visited.put(url, url_data);
+                if (numOfWords>= NW)
+                {
+                    db.updateDocument(url, url_data);
+                    final_urls.add(url);
+                    //to_crawl.decrementAndGet();
+                    db.updateCrawlReminder(to_crawl);
+                }
+                for (String link : links) {
+                    if (link.length() == 0) continue;
+                    if (!link.matches(urlPattern)) continue;
+                    Pattern p;
+                    boolean dis = false;
+                    boolean allow = false;
+                    // 3shan a5ls mn el forward slash ely btb2a fel a5er 3shan kanet bt3ml moshkla fel match lw ana bdwr 3la 7aga tkon fe a5er el url
+                    StringBuilder temp = new StringBuilder(link);
+                    if (temp.charAt(temp.length() - 1) == '/') temp.deleteCharAt(temp.length() - 1);
+                    String disallowed = "";
+                    String allowed = "";
+                    for (int i = 0; i < 2; ++i) {
+                        for (int j = 0; j < allowed_and_disallowd.get(i).size(); ++j) {
+                            p = Pattern.compile(allowed_and_disallowd.get(i).get(j));
+                            Matcher m = p.matcher(temp);
+                            if (m.find()) {
+                                if ((i % 2) == 0) {
+                                    dis = true;
+                                    disallowed = allowed_and_disallowd.get(i).get(j);
+                                } else {
+                                    allow = true;
+                                    allowed = allowed_and_disallowd.get(i).get(j);
                                 }
                             }
                         }
-                        link=NormalizeURL.normalize(link);
-                        synchronized (object4) {
-                            if (!visited.containsKey(link)) {
-                                if (!dis || (allow && (allowed.length() >= disallowed.length()))) {
-                                    visited.put(link, new Url_Data());
-                                    next.add(link);
-                                    db.insertDocument(link);
-                                }
-
+                    }
+                    link=NormalizeURL.normalize(link);
+                    synchronized (object4) {
+                        if (!visited.containsKey(link)) {
+                            if (!dis || (allow && (allowed.length() >= disallowed.length()))) {
+                                visited.put(link, new Url_Data());
+                                next.add(link);
+                                db.insertDocument(link);
                             }
+
                         }
                     }
+                }
 
 
 
@@ -278,11 +274,11 @@ public class Web_Crawling implements Runnable {
         }
     }
 
-    public static void setVisited(ConcurrentHashMap<String,Url_Data> visitedd) {
+    public static void setVisited(Map<String,Url_Data> visitedd) {
         visited = visitedd;
     }
 
-    public static ConcurrentLinkedQueue<String> getFinal_urls() {
+    public static BlockingQueue<String> getFinal_urls() {
         return final_urls;
     }
 
