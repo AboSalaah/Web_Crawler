@@ -42,9 +42,18 @@ public class Url_Data {
         this.tags.add(priority);
     }
 
+    /**
+     * set text array with the url text data
+     * @param text
+     */
     public void addText(ArrayList<String> text) {
         this.text = text;
     }
+
+    /**
+     * set tags array with the url tags
+     * @param tags
+     */
 
     public void addTag(ArrayList<Integer> tags) {
         this.tags = tags;
@@ -59,11 +68,18 @@ public class Url_Data {
         return text.size();
     }
 
-
+    /**
+     * get text array
+     * @return ArrayList<String>
+     */
     public ArrayList<String> getText() {
         return this.text;
     }
 
+    /**
+     * get tags array
+     * @return ArrayList<Integer>
+     */
     public ArrayList<Integer> getTags() {
         return this.tags;
     }

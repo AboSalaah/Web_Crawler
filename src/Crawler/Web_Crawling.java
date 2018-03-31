@@ -298,6 +298,9 @@ public class Web_Crawling implements Runnable {
         return to_crawl;
     }
 
+    /**
+     * function to initialize tagPriorities map with every tag with it's priority
+     */
     public static void setTagPriorities() {
         tagPriorities.put(HEADER1, H1_PRIORITY);
         tagPriorities.put(HEADER2, H2_PRIORITY);
@@ -308,6 +311,11 @@ public class Web_Crawling implements Runnable {
         tagPriorities.put(PARAGRAPH, P_PRIORITY);
     }
 
+    /**
+     * to check if the given tag is from the tags wanted by the indexer or not
+     *
+     * @return boolean
+     */
     public static boolean checkTagExist(String s) {
         return s.equals(HEADER1) || s.equals(HEADER2) || s.equals(HEADER3) || s.equals(HEADER4) || s.equals(HEADER5) || s.equals(HEADER6) || s.equals(PARAGRAPH);
     }
