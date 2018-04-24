@@ -1,5 +1,6 @@
 package Crawler;
 
+import javafx.util.Pair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -57,10 +58,12 @@ public class Web_Crawling implements Runnable {
     private static dbConnector db;
     //private static List<String> current = Collections.synchronizedList(new ArrayList<String>());
     //private static List<String> next = Collections.synchronizedList(new ArrayList<String>());
-    private static ArrayList<String>current = new ArrayList<>();
-    private static ArrayList<String>next=new ArrayList<>();
+    private static ArrayList<Pair<String,String>>current = new ArrayList<>();
+    private static ArrayList<Pair<String,String>>next=new ArrayList<>();
     // da elly lw l2a 3dd el words a2l mno m4 ha update
     private static final int NW = 20;
+    private static final AtomicInteger CONNECTMAXTRIALS= new AtomicInteger(10);
+    private static  AtomicInteger connectTrials= new AtomicInteger(0);
     @Override
     public void run() {
         System.out.println(Thread.currentThread().getName() + " Started");
@@ -68,6 +71,7 @@ public class Web_Crawling implements Runnable {
 
 
             String url;
+            String from;
             Document doc;
             try {
                 synchronized (object1) {
@@ -80,8 +84,9 @@ public class Web_Crawling implements Runnable {
 
                         next.clear();
                     }
-                    url = current.remove(new Random().nextInt(current.size()));
-
+                    Pair<String,String> p = current.remove(new Random().nextInt(current.size()));
+                    url=p.getKey();
+                    from=p.getValue();
 
                 }
                 if (to_crawl.get() <= 0) break;
@@ -90,7 +95,7 @@ public class Web_Crawling implements Runnable {
                         .get();
 
 
-
+                connectTrials.set(0);
 
                 Elements elements = doc.body().select("*");
                 ArrayList<String> links = new ArrayList<>();
@@ -119,10 +124,11 @@ public class Web_Crawling implements Runnable {
                 visited.put(url, url_data);
                 if (numOfWords>= NW)
                 {
-                    db.updateDocument(url, url_data);
+                    db.updateDocument(url, url_data,from,numOfWords);
                     final_urls.add(url);
                     //to_crawl.decrementAndGet();
                     db.updateCrawlReminder(to_crawl);
+                    db.tzbet_in_out(url,from);
                 }
                 for (String link : links) {
                     if (link.length() == 0) continue;
@@ -155,24 +161,31 @@ public class Web_Crawling implements Runnable {
                         if (!visited.containsKey(link)) {
                             if (!dis || (allow && (allowed.length() >= disallowed.length()))) {
                                 visited.put(link, new Url_Data());
-                                next.add(link);
-                                db.insertDocument(link);
+                                next.add(new Pair(link,url));
+                                db.insertDocument(link,url);
                             }
 
                         }
                     }
                 }
 
-
-
             } catch (UnknownHostException e) {
-                System.err.println("Unknown host");
+                //System.err.println("Unknown host");
 
             } catch (SocketTimeoutException e) {
-                System.err.println("IP cannot be reached");
+                connectTrials.set(connectTrials.get()+1);
+                if(connectTrials.get()==CONNECTMAXTRIALS.get()){
+                    try {
+
+                        Thread.sleep(60000);
+                    } catch (InterruptedException e1) {
+                        //e1.printStackTrace();
+                    }
+                }
+                //System.err.println("IP cannot be reached");
 
             }  catch (IOException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
             }
 
 
@@ -256,8 +269,8 @@ public class Web_Crawling implements Runnable {
 
                 }
             } catch (IOException e) {
-                System.err.println("there's no robots.txt in this website");
-                e.printStackTrace();
+                //System.err.println("there's no robots.txt in this website");
+                //e.printStackTrace();
             }
 
         }
@@ -269,8 +282,8 @@ public class Web_Crawling implements Runnable {
         for (String url : urls) {
             url=NormalizeURL.normalize(url);
             // current_urls.put(url);
-            current.add(url);
-            db.insertDocument(url);
+            current.add(new Pair(url,""));
+            db.insertDocument(url,"");
         }
     }
 

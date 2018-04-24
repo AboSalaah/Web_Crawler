@@ -1,12 +1,15 @@
 package Crawler;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.WriteModel;
 import org.bson.Document;
 
 import javax.print.Doc;
@@ -72,27 +75,33 @@ public class dbConnector {
         to_crawl.deleteMany(new Document());
     }
 
-    public void insertDocument(String url) {
+    public void insertDocument(String url,String from) {
         Document page = new Document();
 
         Document cur = documents.find(new Document("url", url)).first();
+        String[] arr = {};
         if (cur == null) {
             page = new Document("url", url);
             page.append("crawled", 0)
                     .append("to_index", 0)
-                    .append("priority", PRIORITY);
+                    .append("priority", PRIORITY)
+                    .append("from",from)
+                    .append("in",arr)
+                    .append("out",arr)
+                    .append("numOfWords",0)
+                    .append("page_rank" , 0.0);
             documents.insertOne(page);
         }
 
 
     }
 
-    public void updateDocument(String url, Url_Data url_data) {
+    public void updateDocument(String url, Url_Data url_data,String from,int numOfWords) {
         BasicDBObject updateQuery;
 
         Document cur = documents.find(new Document("url", url)).first();
         if(cur==null){
-           insertDocument(url);
+           insertDocument(url,from);
            cur=documents.find(new Document("url", url)).first();
         }
         ArrayList<String> texts_db = (ArrayList<String>) cur.get("url_data");
@@ -100,7 +109,7 @@ public class dbConnector {
         ArrayList<String> texts = url_data.getText();
         ArrayList<Integer> tags = url_data.getTags();
         if (texts_db != null) {
-            if (texts.size() == texts.size()) {
+            if (texts.size() == texts_db.size()) {
                 boolean same = true;
                 for (int i = 0; i < texts.size(); ++i) {
                     if (!(texts.get(i).equals(texts_db.get(i))) || tags.get(i)!=tags_db.get(i)) {
@@ -123,6 +132,7 @@ public class dbConnector {
                 .append("tags", tags)
                 .append("crawled", 1)
                 .append("to_index", 1)
+                .append("numOfWords",numOfWords)
                 .append("priority", cur.getInteger("priority") + 1));
 
         // apply the update to the database
@@ -209,6 +219,79 @@ public class dbConnector {
         query.append("crawled" , 0);
         documents.deleteMany(query);
     }
+
+    public void tzbet_in_out(String url,String from){
+        BasicDBObject updateQuery;
+        Document cur = documents.find(new Document("url", url)).first();
+        String from_db = (String) cur.get("from");
+        if(from_db==null)return;
+
+
+
+        DBObject listItem = new BasicDBObject("out", url);
+         updateQuery = new BasicDBObject("$addtoset", listItem);
+        BasicDBObject updateObject = new BasicDBObject("url", from);
+        documents.updateOne(updateObject, updateQuery);
+
+
+         listItem = new BasicDBObject("in", from);
+        updateQuery = new BasicDBObject("$addtoset", listItem);
+         updateObject = new BasicDBObject("url", url);
+        documents.updateOne(updateObject, updateQuery);
+
+
+
+
+
+        /*Document fromdb = documents.find(new Document("url",from)).first();
+        ArrayList<String> out = (ArrayList<String>) fromdb.get("out");
+        out.add(url);
+        ArrayList<String>in = (ArrayList<String>) cur.get("in");
+        in.add(from_db);
+
+
+
+
+
+        updateQuery = new BasicDBObject();
+        updateQuery.put("$set", new BasicDBObject().append("in", in));
+
+        // apply the update to the database
+        BasicDBObject updateObject = new BasicDBObject("url", url);
+        documents.updateOne(updateObject, updateQuery);
+
+
+        updateQuery = new BasicDBObject();
+        updateQuery.put("$set", new BasicDBObject().append("out", out));
+
+        // apply the update to the database
+         updateObject = new BasicDBObject("url", from);
+        documents.updateOne(updateObject, updateQuery);
+
+
+*/
+
+
+    }
+    public void updatePageRank(double [] PR , ArrayList<String> keys)
+    {
+        List<WriteModel<Document>> updates = new ArrayList<>();
+        for(int i = 0 ; i<PR.length ; i++)
+        {
+            BasicDBObject updateObject = new BasicDBObject("url", keys.get(i));
+            BasicDBObject updateQuery = new BasicDBObject("$set", new Document("page_rank" , PR[i]));
+            updates.add(
+                    new UpdateOneModel<Document>(
+                            updateObject,
+                            updateQuery
+                    )
+            );
+        }
+        if(!updates.isEmpty()) documents.bulkWrite(updates);
+    }
+
+
+
 
     public void close() {
         mongoClient.close();
